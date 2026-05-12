@@ -1,0 +1,16 @@
+{
+  "manifest_version": 1,
+  "author": "Abelon Campaign",
+  "name": "Abelon Stat Roller",
+  "description": "Session zero stat roller. Roll 4d6 drop lowest, share results with the party and Discord.",
+  "version": "1.0.0",
+  "icon": "https://coldsnapdev.github.io/abelon-namer/SimpleIcon.png",
+  "background_url": "https://YOUR-DOMAIN/stat-roller-background.html",
+  "action": {
+    "title": "Roll Your Stats",
+    "icon": "https://coldsnapdev.github.io/abelon-namer/SimpleIcon.png",
+    "popover": "https://YOUR-DOMAIN/stat-roller-action.html",
+    "height": 580,
+    "width": 420
+  }
+}
