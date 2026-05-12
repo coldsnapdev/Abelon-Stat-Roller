@@ -34,7 +34,7 @@
 
   .title {
     font-family: 'Cinzel Decorative', serif;
-    font-size: clamp(18px, 3vw, 32px);
+    font-size: clamp(24px, 3.5vw, 40px);
     color: #f0d060;
     letter-spacing: .2em;
     text-align: center;
@@ -47,7 +47,7 @@
 
   .subtitle {
     font-family: 'Crimson Text', serif;
-    font-size: clamp(13px, 1.5vw, 17px);
+    font-size: clamp(16px, 2vw, 22px);
     font-style: italic; color: #9b7fd4;
     letter-spacing: .1em; text-align: center;
     opacity: 0; transition: opacity 1s ease .3s;
@@ -72,14 +72,14 @@
   .dice-row { display: flex; gap: 5px; }
 
   .die {
-    width: clamp(28px, 4vw, 44px);
-    height: clamp(28px, 4vw, 44px);
+    width: clamp(36px, 5vw, 56px);
+    height: clamp(36px, 5vw, 56px);
     background: rgba(10,8,20,0.85);
     border: 1px solid #2a1f4a;
     border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     font-family: 'Cinzel', serif;
-    font-size: clamp(12px, 1.8vw, 18px);
+    font-size: clamp(16px, 2.2vw, 22px);
     font-weight: 700; color: #c9a84c;
     transition: border-color .3s, color .3s, background .3s;
   }
@@ -95,7 +95,7 @@
 
   .score-display {
     font-family: 'Cinzel', serif;
-    font-size: clamp(28px, 5vw, 52px);
+    font-size: clamp(36px, 6vw, 64px);
     font-weight: 700; color: transparent;
     background: linear-gradient(135deg, #c9a84c, #f0d060, #c9a84c);
     -webkit-background-clip: text; background-clip: text;
@@ -126,7 +126,7 @@
 
   .destiny-label {
     font-family: 'Cinzel', serif;
-    font-size: clamp(10px, 1.2vw, 13px);
+    font-size: clamp(13px, 1.5vw, 16px);
     letter-spacing: .25em; text-transform: uppercase;
     color: #9b7fd4; text-align: center;
   }
@@ -135,7 +135,7 @@
 
   .destiny-score {
     font-family: 'Cinzel', serif;
-    font-size: clamp(22px, 3.5vw, 40px);
+    font-size: clamp(28px, 4vw, 48px);
     font-weight: 700; color: #c9a84c;
     background: rgba(10,8,20,0.8);
     border: 1px solid #2a1f4a;
@@ -146,13 +146,13 @@
 
   .destiny-total {
     font-family: 'Crimson Text', serif;
-    font-size: clamp(14px, 1.8vw, 20px);
+    font-size: clamp(17px, 2vw, 24px);
     font-style: italic; color: #7a6a9a; text-align: center;
   }
 
   .destiny-phrase {
     font-family: 'Cinzel Decorative', serif;
-    font-size: clamp(12px, 1.5vw, 16px);
+    font-size: clamp(15px, 1.8vw, 20px);
     color: #f0d060; letter-spacing: .1em; text-align: center;
     text-shadow: 0 0 20px rgba(201,168,76,0.6);
     opacity: 0; transition: opacity 1s ease .4s;
@@ -161,7 +161,7 @@
 
   .close-btn {
     font-family: 'Cinzel', serif;
-    font-size: clamp(11px, 1.3vw, 14px);
+    font-size: clamp(14px, 1.5vw, 17px);
     letter-spacing: .15em; text-transform: uppercase;
     color: #3a2a5a; background: none;
     border: 1px solid #2a1f4a; border-radius: 3px;
@@ -336,7 +336,9 @@ async function runSequence(playerName, webhookUrl) {
 }
 
 window.closeModal = async function() {
-  await OBR.modal.close(`${EXT_ID}/modal`);
+  // Signal the background script to close the modal
+  // (modal iframes cannot close themselves directly)
+  await OBR.room.setMetadata({ [`${EXT_ID}/close`]: true });
 };
 
 OBR.onReady(async () => {
