@@ -578,10 +578,15 @@ OBR.onReady(async () => {
   // Load existing history
   await loadHistory();
 
-  // Listen for history changes from other players via room metadata
-  OBR.room.onMetadataChange((meta) => {
-    syncFromMeta(meta);
-  });
+  // Poll room metadata every 2 seconds to sync history across all clients
+  setInterval(async () => {
+    try {
+      const meta = await OBR.room.getMetadata();
+      syncFromMeta(meta);
+    } catch (e) {
+      // silent — don't spam status bar on poll failures
+    }
+  }, 2000);
 });
 </script>
 </body>
