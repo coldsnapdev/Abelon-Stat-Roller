@@ -121,14 +121,20 @@ let webhookUrl = "";
 window.triggerRoll = async function() {
   try {
     document.getElementById("status").textContent = "Opening the void…";
-    // Write trigger to room metadata — background script picks this up
-    // and opens the modal for everyone
+    const playerName = await OBR.player.getName();
+    // Store player name and webhook for the modal to read
     await OBR.room.setMetadata({
-      [`${EXT_ID}/trigger`]: {
-        player: await OBR.player.getName(),
-        timestamp: Date.now(),
+      [`${EXT_ID}/current`]: {
+        player: playerName,
         webhook: webhookUrl,
+        timestamp: Date.now(),
       }
+    });
+    // Open the modal only for this player
+    await OBR.modal.open({
+      id: `${EXT_ID}/modal`,
+      url: "https://abelon-stat-roller.pages.dev/stat-roller-modal.html",
+      fullScreen: true,
     });
     document.getElementById("status").textContent = "4d6 drop lowest · six scores";
   } catch(e) {

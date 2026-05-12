@@ -343,9 +343,9 @@ window.closeModal = async function() {
 
 OBR.onReady(async () => {
   const meta = await OBR.room.getMetadata();
-  const trigger = meta[`${EXT_ID}/trigger`];
-  const webhookUrl = meta[WEBHOOK_KEY] || "";
-  const playerName = trigger?.player || await OBR.player.getName();
+  const current = meta[`${EXT_ID}/current`];
+  const webhookUrl = current?.webhook || meta[WEBHOOK_KEY] || "";
+  const playerName = current?.player || await OBR.player.getName();
   await runSequence(playerName, webhookUrl);
 });
 </script>
