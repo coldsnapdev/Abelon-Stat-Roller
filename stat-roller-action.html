@@ -502,11 +502,8 @@ async function saveHistory() {
 
 function syncFromMeta(meta) {
   const updated = meta[HISTORY_KEY] || [];
-  // Only re-render if something actually changed
-  if (JSON.stringify(updated) !== JSON.stringify(rolls)) {
-    rolls = updated;
-    renderHistory();
-  }
+  rolls = updated;
+  renderHistory();
 }
 
 // ── Roll ──────────────────────────────────────────────────────────────────────
@@ -578,15 +575,15 @@ OBR.onReady(async () => {
   // Load existing history
   await loadHistory();
 
-  // Poll room metadata every 2 seconds to sync history across all clients
+  // Poll room metadata every 1.5 seconds to sync history across all clients
   setInterval(async () => {
     try {
       const meta = await OBR.room.getMetadata();
       syncFromMeta(meta);
     } catch (e) {
-      // silent — don't spam status bar on poll failures
+      console.warn("Poll failed:", e.message || e);
     }
-  }, 2000);
+  }, 1500);
 });
 </script>
 </body>
