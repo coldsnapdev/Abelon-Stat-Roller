@@ -512,41 +512,51 @@ function syncFromMeta(meta) {
 // ── Roll ──────────────────────────────────────────────────────────────────────
 
 window.rollStats = async function() {
-  const stats = rollSixStats();
-  const scores = stats.map(s => s.total);
+  try {
+    const stats = rollSixStats();
+    const scores = stats.map(s => s.total);
 
-  // Show locally immediately
-  renderMyRoll(stats);
+    // Show locally immediately
+    renderMyRoll(stats);
 
-  const entry = {
-    playerId: myName + "_" + Date.now(),
-    playerName: myName,
-    scores,
-    timestamp: new Date().toISOString(),
-  };
+    const entry = {
+      playerId: myName + "_" + Date.now(),
+      playerName: myName,
+      scores,
+      timestamp: new Date().toISOString(),
+    };
 
-  // Add to local history
-  rolls.push(entry);
-  renderHistory();
+    // Load the freshest copy from room, append, save back
+    // This avoids overwriting another player's roll that arrived since we loaded
+    const freshMeta = await OBR.room.getMetadata();
+    const freshRolls = freshMeta[HISTORY_KEY] || [];
+    freshRolls.push(entry);
+    rolls = freshRolls;
+    await OBR.room.setMetadata({ [HISTORY_KEY]: rolls });
+    renderHistory();
 
-  // Persist to room metadata so late-joiners see it
-  await saveHistory();
+    // Post directly to Discord
+    await postToDiscord(myName, scores);
 
-  // Post directly to Discord
-  await postToDiscord(myName, scores);
-
-  setStatus("Rolled! Results shared with the party.");
+    setStatus("Rolled! Results shared with the party.");
+  } catch (e) {
+    setStatus("Error: " + (e.message || JSON.stringify(e)));
+  }
 };
 
 // ── GM clear ─────────────────────────────────────────────────────────────────
 
 window.clearHistory = async function() {
   if (!confirm("Clear all rolls for everyone?")) return;
-  rolls = [];
-  await OBR.room.setMetadata({ [HISTORY_KEY]: [] });
-  renderHistory();
-  document.getElementById("my-roll").classList.remove("visible");
-  setStatus("Rolls cleared.");
+  try {
+    rolls = [];
+    await OBR.room.setMetadata({ [HISTORY_KEY]: [] });
+    renderHistory();
+    document.getElementById("my-roll").classList.remove("visible");
+    setStatus("Rolls cleared.");
+  } catch (e) {
+    setStatus("Error clearing: " + (e.message || JSON.stringify(e)));
+  }
 };
 
 // ── Init ──────────────────────────────────────────────────────────────────────
