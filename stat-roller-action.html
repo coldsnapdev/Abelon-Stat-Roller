@@ -497,11 +497,14 @@ async function loadHistory() {
 }
 
 async function saveHistory() {
+  console.log("[StatRoller] saveHistory — saving", rolls.length, "rolls");
   await OBR.room.setMetadata({ [HISTORY_KEY]: rolls });
+  console.log("[StatRoller] saveHistory — done");
 }
 
 function syncFromMeta(meta) {
   const updated = meta[HISTORY_KEY] || [];
+  console.log("[StatRoller] syncFromMeta — rolls in meta:", updated.length, updated.map(r => r.playerName));
   rolls = updated;
   renderHistory();
 }
@@ -527,9 +530,12 @@ window.rollStats = async function() {
     // This avoids overwriting another player's roll that arrived since we loaded
     const freshMeta = await OBR.room.getMetadata();
     const freshRolls = freshMeta[HISTORY_KEY] || [];
+    console.log("[StatRoller] rollStats — existing rolls in meta:", freshRolls.length);
     freshRolls.push(entry);
     rolls = freshRolls;
+    console.log("[StatRoller] rollStats — saving", rolls.length, "rolls");
     await OBR.room.setMetadata({ [HISTORY_KEY]: rolls });
+    console.log("[StatRoller] rollStats — metadata saved");
     renderHistory();
 
     // Post directly to Discord
