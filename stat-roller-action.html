@@ -28,7 +28,7 @@
     background: var(--bg);
     color: var(--ink);
     font-family: 'Crimson Text', Georgia, serif;
-    font-size: 15px;
+    font-size: 17px;
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -45,7 +45,7 @@
 
   header h1 {
     font-family: 'Cinzel', serif;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 600;
     color: var(--gold);
     letter-spacing: .15em;
@@ -53,7 +53,7 @@
   }
 
   header p {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ink3);
     margin-top: 2px;
     font-style: italic;
@@ -73,7 +73,7 @@
 
   .roll-btn {
     font-family: 'Cinzel', serif;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: .12em;
     text-transform: uppercase;
@@ -104,7 +104,7 @@
   .my-roll.visible { display: block; }
 
   .my-roll-label {
-    font-size: 11px;
+    font-size: 13px;
     letter-spacing: .1em;
     text-transform: uppercase;
     color: var(--ink3);
@@ -128,21 +128,21 @@
 
   .stat-score {
     font-family: 'Cinzel', serif;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--gold);
     line-height: 1;
   }
 
   .stat-dice {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--ink3);
     margin-top: 2px;
     line-height: 1.3;
   }
 
   .roll-total {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--ink2);
     text-align: right;
     font-style: italic;
@@ -151,7 +151,7 @@
   /* ── History ── */
   .history-label {
     padding: 8px 20px 4px;
-    font-size: 10px;
+    font-size: 12px;
     letter-spacing: .12em;
     text-transform: uppercase;
     color: var(--ink3);
@@ -193,13 +193,13 @@
 
   .entry-name {
     font-family: 'Cinzel', serif;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--gold);
     font-weight: 600;
   }
 
   .entry-time {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--ink3);
     font-style: italic;
   }
@@ -213,7 +213,7 @@
 
   .entry-score {
     font-family: 'Cinzel', serif;
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--ink);
     background: var(--bg3);
@@ -228,7 +228,7 @@
   .entry-score.low  { color: var(--ink3); }
 
   .entry-total {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--ink3);
     font-style: italic;
   }
@@ -354,7 +354,6 @@ import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm";
 
 const EXT_ID        = "com.abelon.statroller";
 const WEBHOOK_KEY   = `${EXT_ID}/webhook`;
-const BROADCAST_KEY = `${EXT_ID}/roll`;
 const HISTORY_KEY   = `${EXT_ID}/history`;
 let rolls = [];   // local cache of roll history
 let myName = "";
@@ -501,6 +500,15 @@ async function saveHistory() {
   await OBR.room.setMetadata({ [HISTORY_KEY]: rolls });
 }
 
+function syncFromMeta(meta) {
+  const updated = meta[HISTORY_KEY] || [];
+  // Only re-render if something actually changed
+  if (JSON.stringify(updated) !== JSON.stringify(rolls)) {
+    rolls = updated;
+    renderHistory();
+  }
+}
+
 // ── Roll ──────────────────────────────────────────────────────────────────────
 
 window.rollStats = async function() {
@@ -511,7 +519,7 @@ window.rollStats = async function() {
   renderMyRoll(stats);
 
   const entry = {
-    playerId: await OBR.player.getId(),
+    playerId: myName + "_" + Date.now(),
     playerName: myName,
     scores,
     timestamp: new Date().toISOString(),
@@ -523,9 +531,6 @@ window.rollStats = async function() {
 
   // Persist to room metadata so late-joiners see it
   await saveHistory();
-
-  // Broadcast to all open panels
-  await OBR.broadcast.sendMessage(BROADCAST_KEY, entry);
 
   // Post directly to Discord
   await postToDiscord(myName, scores);
@@ -539,7 +544,6 @@ window.clearHistory = async function() {
   if (!confirm("Clear all rolls for everyone?")) return;
   rolls = [];
   await OBR.room.setMetadata({ [HISTORY_KEY]: [] });
-  await OBR.broadcast.sendMessage(BROADCAST_KEY, { clear: true });
   renderHistory();
   document.getElementById("my-roll").classList.remove("visible");
   setStatus("Rolls cleared.");
@@ -564,21 +568,9 @@ OBR.onReady(async () => {
   // Load existing history
   await loadHistory();
 
-  // Listen for new rolls from other players
-  OBR.broadcast.onMessage(BROADCAST_KEY, (event) => {
-    const data = event.data;
-    if (data.clear) {
-      rolls = [];
-      renderHistory();
-      document.getElementById("my-roll").classList.remove("visible");
-      return;
-    }
-    // Only add if not already in history (avoid duplicate from own roll)
-    const exists = rolls.some(r => r.playerId === data.playerId && r.timestamp === data.timestamp);
-    if (!exists) {
-      rolls.push(data);
-      renderHistory();
-    }
+  // Listen for history changes from other players via room metadata
+  OBR.room.onMetadataChange((meta) => {
+    syncFromMeta(meta);
   });
 });
 </script>
