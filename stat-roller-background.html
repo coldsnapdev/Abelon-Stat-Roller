@@ -6,11 +6,22 @@
 import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm";
 
 const EXT_ID = "com.abelon.statroller";
-const BROADCAST_KEY = `${EXT_ID}/roll`;
+const MODAL_ID = `${EXT_ID}/modal`;
 
 OBR.onReady(async () => {
-  // Nothing to do in background — broadcast channel is handled in action.html
-  // This file exists to keep the extension alive and registered
+  // Listen for roll trigger from the action popover via room metadata
+  OBR.room.onMetadataChange(async (meta) => {
+    if (meta[`${EXT_ID}/trigger`]) {
+      // Open the modal for everyone
+      await OBR.modal.open({
+        id: MODAL_ID,
+        url: "https://abelon-stat-roller.pages.dev/stat-roller-modal.html",
+        fullScreen: true,
+      });
+      // Clear the trigger
+      await OBR.room.setMetadata({ [`${EXT_ID}/trigger`]: null });
+    }
+  });
 });
 </script>
 </body>
