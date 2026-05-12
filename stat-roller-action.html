@@ -272,6 +272,48 @@
 
   .clear-btn:hover { color: var(--red); border-color: var(--red); }
   .clear-btn.visible { display: block; }
+
+  .webhook-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    cursor: pointer;
+    background: var(--bg3);
+    color: var(--ink3);
+  }
+  .webhook-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+  .webhook-config {
+    padding: 8px 16px;
+    background: var(--bg2);
+    border-top: 1px solid var(--rule);
+    display: flex;
+    gap: 8px;
+  }
+
+  .webhook-config input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: monospace;
+  }
+
+  .webhook-config input:focus { outline: none; border-color: var(--gold); }
+
+  .webhook-config button {
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--gold);
+    cursor: pointer;
+    background: var(--bg3);
+    color: var(--gold);
+  }
 </style>
 </head>
 <body>
@@ -296,19 +338,24 @@
   <div class="empty-state" id="empty-state">No rolls yet. Be the first.</div>
 </div>
 
+<div class="webhook-config" id="webhook-config" style="display:none">
+  <input type="text" id="webhook-url" placeholder="Discord webhook URL…">
+  <button onclick="saveWebhook()">Save</button>
+</div>
+
 <div class="footer">
   <span class="status" id="status"></span>
+  <button class="webhook-btn" id="webhook-btn" onclick="toggleWebhookConfig()" style="display:none">⚙ Discord</button>
   <button class="clear-btn" id="clear-btn" onclick="clearHistory()">Clear all rolls</button>
 </div>
 
 <script type="module">
 import OBR from "https://cdn.jsdelivr.net/npm/@owlbear-rodeo/sdk@3.1.0/+esm";
 
-const EXT_ID       = "com.abelon.statroller";
+const EXT_ID        = "com.abelon.statroller";
+const WEBHOOK_KEY   = `${EXT_ID}/webhook`;
 const BROADCAST_KEY = `${EXT_ID}/roll`;
 const HISTORY_KEY   = `${EXT_ID}/history`;
-const RUMBLE_KEY    = "com.battle-system.friends/metadata_chatlog";
-
 let rolls = [];   // local cache of roll history
 let myName = "";
 let isGM = false;
@@ -394,25 +441,50 @@ function setStatus(msg) {
   document.getElementById("status").textContent = msg;
 }
 
-// ── Rumble integration ────────────────────────────────────────────────────────
+// ── Discord webhook integration ──────────────────────────────────────────────
 
-async function postToRumble(playerId, playerName, scores) {
+let webhookUrl = "";
+
+async function loadWebhook() {
+  const roomMeta = await OBR.room.getMetadata();
+  webhookUrl = roomMeta[WEBHOOK_KEY] || "";
+  if (webhookUrl && document.getElementById("webhook-url")) {
+    document.getElementById("webhook-url").value = webhookUrl;
+  }
+}
+
+window.saveWebhook = async function() {
+  const input = document.getElementById("webhook-url").value.trim();
+  if (!input.startsWith("https://discord.com/api/webhooks/")) {
+    setStatus("That doesn't look like a Discord webhook URL.");
+    return;
+  }
+  webhookUrl = input;
+  await OBR.room.setMetadata({ [WEBHOOK_KEY]: webhookUrl });
+  setStatus("Discord webhook saved.");
+  document.getElementById("webhook-config").style.display = "none";
+};
+
+window.toggleWebhookConfig = function() {
+  const el = document.getElementById("webhook-config");
+  el.style.display = el.style.display === "none" ? "flex" : "none";
+};
+
+async function postToDiscord(playerName, scores) {
+  if (!webhookUrl) return;
   const sorted = [...scores].sort((a, b) => b - a);
   const sum = scores.reduce((a, b) => a + b, 0);
-  const msg = `🎲 ${playerName} rolled stats: ${sorted.join(", ")} (Total: ${sum})`;
-
   try {
-    await OBR.player.setMetadata({
-      [RUMBLE_KEY]: {
-        chatlog: msg,
-        created: new Date().toISOString(),
-        sender: playerName,
-        targetId: "0000",   // broadcast to party
-      },
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "Abelon Stat Roller",
+        content: `🎲 **${playerName}** rolled stats: **${sorted.join(", ")}** (Total: ${sum})`,
+      }),
     });
   } catch (e) {
-    // Rumble not installed — silent fail, doesn't break anything
-    console.log("Rumble not available:", e.message);
+    console.log("Discord post failed:", e.message);
   }
 }
 
@@ -454,8 +526,8 @@ window.rollStats = async function() {
   // Broadcast to all open panels
   await OBR.broadcast.sendMessage(BROADCAST_KEY, entry);
 
-  // Post to Rumble → Discord
-  await postToRumble(entry.playerId, myName, scores);
+  // Post directly to Discord
+  await postToDiscord(myName, scores);
 
   setStatus("Rolled! Results shared with the party.");
 };
@@ -479,10 +551,14 @@ OBR.onReady(async () => {
   const role = await OBR.player.getRole();
   isGM = role === "GM";
 
-  // Show clear button for GM only
+  // Show GM controls
   if (isGM) {
     document.getElementById("clear-btn").classList.add("visible");
+    document.getElementById("webhook-btn").style.display = "block";
   }
+
+  // Load webhook URL
+  await loadWebhook();
 
   // Load existing history
   await loadHistory();
