@@ -402,9 +402,10 @@ function renderHistory() {
   const container = document.getElementById("history");
   const empty = document.getElementById("empty-state");
 
+  if (!container || !empty) return;
+
   if (rolls.length === 0) {
     empty.style.display = "block";
-    // Remove all entries
     [...container.querySelectorAll(".history-entry")].forEach(el => el.remove());
     return;
   }
